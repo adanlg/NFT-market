@@ -1,28 +1,33 @@
-import { useState, useEffect } from 'react'
-import { ethers } from "ethers"
-import { Row, Col, Card } from 'react-bootstrap'
+import { useState, useEffect } from 'react';
+import { ethers } from "ethers";
+import { Row, Col, Card , Button} from 'react-bootstrap';
 import { convertUriFormat } from './uriUtils.js';
 
 export default function MyPurchases({ marketplace, nft, account }) {
-  const [loading, setLoading] = useState(true)
-  const [purchases, setPurchases] = useState([])
+  const [loading, setLoading] = useState(true);
+  const [purchases, setPurchases] = useState([]);
+
   const loadPurchasedItems = async () => {
-    // Fetch purchased items from marketplace by quering Offered events with the buyer set as the user
-    const filter =  marketplace.filters.Bought(null,null,null,null,null,account)
-    const results = await marketplace.queryFilter(filter)
-    //Fetch metadata of each nft and add that to listedItem object.
-    const purchases = await Promise.all(results.map(async i => {
+    // Fetch purchased items from marketplace by querying Offered events with the buyer set as the user
+    const filter = marketplace.filters.Bought(null, null, null, null, null, account);
+    const results = await marketplace.queryFilter(filter);
+
+    // Fetch metadata of each nft and add that to listedItem object.
+    const purchases = await Promise.all(results.map(async (i) => {
       // fetch arguments from each result
-      i = i.args
+      i = i.args;
+
       // get uri url from nft contract
-      const newUri = await nft.tokenURI(i.tokenId)
-      const uri = convertUriFormat(newUri)
-      const response = await fetch(uri)
-      const metadata = await response.json()
+      const newUri = await nft.tokenURI(i.tokenId);
+      const uri = convertUriFormat(newUri);
+      const response = await fetch(uri);
+      const metadata = await response.json();
+
       // get total price of item (item price + fee)
-      const totalPrice = await marketplace.getTotalPrice(i.itemId)
+      const totalPrice = await marketplace.getTotalPrice(i.itemId);
+
       // define listed item object
-      const imageUri = convertUriFormat(metadata.image) 
+      const imageUri = convertUriFormat(metadata.image);
 
       let purchasedItem = {
         totalPrice,
@@ -31,40 +36,58 @@ export default function MyPurchases({ marketplace, nft, account }) {
         name: metadata.name,
         description: metadata.description,
         image: imageUri
-      }
-      return purchasedItem
-    }))
-    setLoading(false)
-    setPurchases(purchases)
-  }
+      };
+
+      return purchasedItem;
+    }));
+
+    setLoading(false);
+    setPurchases(purchases);
+  };
+  const burnItem = async (purchasedItem) => {
+    await (await nft.burn(purchasedItem.itemId)).wait();
+    loadPurchasedItems();
+  };
+
   useEffect(() => {
-    loadPurchasedItems()
-  }, [])
-  if (loading) return (
-    <main style={{ padding: "1rem 0" }}>
-      <h2>Loading...</h2>
-    </main>
-  )
+    loadPurchasedItems();
+  }, []);
+
+  if (loading) {
+    return (
+      <main style={{ padding: "1rem 0" }}>
+        <h2>Loading...</h2>
+      </main>
+    );
+  }
+
   return (
     <div className="flex justify-center">
-      {purchases.length > 0 ?
+      {purchases.length > 0 ? (
         <div className="px-5 container">
           <Row xs={1} md={2} lg={4} className="g-4 py-5">
             {purchases.map((item, idx) => (
               <Col key={idx} className="overflow-hidden">
                 <Card>
                   <Card.Img variant="top" src={item.image} />
-                  <Card.Footer>{ethers.utils.formatEther(item.totalPrice)} ETH</Card.Footer>
+                  <Card.Footer>
+                    {ethers.utils.formatEther(item.totalPrice)} ETH
+                    <div className='d-grid'>
+                      <Button onClick={() => burnItem(item)} variant="primary" size="lg">
+                        Burn 
+                      </Button>
+                    </div>
+                  </Card.Footer>
                 </Card>
               </Col>
             ))}
           </Row>
         </div>
-        : (
-          <main style={{ padding: "1rem 0" }}>
-            <h2>No purchases</h2>
-          </main>
-        )}
+      ) : (
+        <main style={{ padding: "1rem 0" }}>
+          <h2>No purchases</h2>
+        </main>
+      )}
     </div>
   );
 }

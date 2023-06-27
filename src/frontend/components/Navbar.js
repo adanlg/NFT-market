@@ -10,7 +10,7 @@ const Navigation = ({ web3Handler, account }) => {
             <Container>
                 <Navbar.Brand href="https://oicampus.telefonica.com/en/beca/ideas-locas-web3-209">
                     <img src={market} width="40" height="40" className="" alt="" />
-                    &nbsp; DApp NFT Marketplace
+                    &nbsp; OpenLake
                 </Navbar.Brand>
                 <Navbar.Toggle aria-controls="responsive-navbar-nav" />
                 <Navbar.Collapse id="responsive-navbar-nav">
